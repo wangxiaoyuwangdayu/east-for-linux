@@ -39,7 +39,7 @@ tf.app.flags.DEFINE_string('geometry', 'RBOX',
 training_data_path = '/media/linlin/PROJ2/wangjiayu/east/data/all-now/images/'
 min_crop_side_ratio = 0.1
 geometry = 'RBOX'
-min_text_size = 10
+min_text_size = 8
 
 ########获取所有训练图片路径############
 def get_images():
@@ -409,7 +409,7 @@ def generate_rbox(im_size, polys, tags):
     h, w = im_size
     poly_mask = np.zeros((h, w), dtype=np.uint8)
     score_map = np.zeros((h, w), dtype=np.uint8)
-    geo_map = np.zeros((h, w, 5), dtype=np.float32)
+    geo_map = np.zeros((h, w, 4), dtype=np.float32)
     # mask used during traning, to ignore some hard areas
     training_mask = np.ones((h, w), dtype=np.uint8)
     for poly_idx, poly_tag in enumerate(zip(polys, tags)):
@@ -522,7 +522,7 @@ def generate_rbox(im_size, polys, tags):
             # left
             geo_map[y, x, 3] = point_dist_to_line(p3_rect, p0_rect, point)
             # angle
-            geo_map[y, x, 4] = rotate_angle
+            # geo_map[y, x, 4] = rotate_angle
     return score_map, geo_map, training_mask
 
 
@@ -588,7 +588,7 @@ def generator(input_size=512, batch_size=32,
                     im_padded[:new_h, :new_w, :] = im.copy()
                     im = cv2.resize(im_padded, dsize=(input_size, input_size))
                     score_map = np.zeros((input_size, input_size), dtype=np.uint8)
-                    geo_map_channels = 5 if geometry == 'RBOX' else 8
+                    geo_map_channels = 4 if geometry == 'RBOX' else 8
                     geo_map = np.zeros((input_size, input_size, geo_map_channels), dtype=np.float32)
                     training_mask = np.ones((input_size, input_size), dtype=np.uint8)
                 else:

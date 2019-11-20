@@ -76,9 +76,9 @@ def model(images, weight_decay=1e-5, is_training=True):
             # this is do with the angle map
             F_score = slim.conv2d(g[3], 1, 1, activation_fn=tf.nn.sigmoid, normalizer_fn=None)
             # 4 channel of axis aligned bbox and 1 channel rotation angle
-            geo_map = slim.conv2d(g[3], 4, 1, activation_fn=tf.nn.sigmoid, normalizer_fn=None) * text_scale
-            angle_map = (slim.conv2d(g[3], 1, 1, activation_fn=tf.nn.sigmoid, normalizer_fn=None) - 0.5) * np.pi/2 # angle is between [-45, 45]
-            F_geometry = tf.concat([geo_map, angle_map], axis=-1)
+            F_geometry = slim.conv2d(g[3], 4, 1, activation_fn=tf.nn.sigmoid, normalizer_fn=None) * text_scale
+            # angle_map = (slim.conv2d(g[3], 1, 1, activation_fn=tf.nn.sigmoid, normalizer_fn=None) - 0.5) * np.pi/2 # angle is between [-45, 45]
+            # F_geometry = tf.concat([geo_map, angle_map], axis=-1)
 
     return F_score, F_geometry
 
@@ -120,8 +120,8 @@ def loss(y_true_cls, y_pred_cls,
     classification_loss *= 0.01
 
     # d1 -> top, d2->right, d3->bottom, d4->left
-    d1_gt, d2_gt, d3_gt, d4_gt, theta_gt = tf.split(value=y_true_geo, num_or_size_splits=5, axis=3)
-    d1_pred, d2_pred, d3_pred, d4_pred, theta_pred = tf.split(value=y_pred_geo, num_or_size_splits=5, axis=3)
+    d1_gt, d2_gt, d3_gt, d4_gt= tf.split(value=y_true_geo, num_or_size_splits=4, axis=3)
+    d1_pred, d2_pred, d3_pred, d4_pred = tf.split(value=y_pred_geo, num_or_size_splits=4, axis=3)
     area_gt = (d1_gt + d3_gt) * (d2_gt + d4_gt)
     area_pred = (d1_pred + d3_pred) * (d2_pred + d4_pred)
     w_union = tf.minimum(d2_gt, d2_pred) + tf.minimum(d4_gt, d4_pred)
@@ -129,9 +129,9 @@ def loss(y_true_cls, y_pred_cls,
     area_intersect = w_union * h_union
     area_union = area_gt + area_pred - area_intersect
     L_AABB = -tf.log((area_intersect + 1.0)/(area_union + 1.0))
-    L_theta = 1 - tf.cos(theta_pred - theta_gt)
+    # L_theta = 1 - tf.cos(theta_pred - theta_gt)
     tf.summary.scalar('geometry_AABB', tf.reduce_mean(L_AABB * y_true_cls * training_mask))
-    tf.summary.scalar('geometry_theta', tf.reduce_mean(L_theta * y_true_cls * training_mask))
-    L_g = L_AABB + 20 * L_theta
+    # tf.summary.scalar('geometry_theta', tf.reduce_mean(L_theta * y_true_cls * training_mask))
+    L_g = L_AABB  # + 20 * L_theta
 
     return tf.reduce_mean(L_g * y_true_cls * training_mask) + classification_loss
